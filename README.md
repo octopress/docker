@@ -2,7 +2,7 @@
 
 This image provides an isolated full install of Octopress with all the benefits
 of `jekyll/stable` Docker image so if you are looking to do cool stuff you
-should check out https://github.com/jekyll/jekyll-docker too because it has a
+should check out https://github.com/jekyll/docker-jekyll too because it has a
 lot of neat stuff this image inherits.
 
 ## Installing Octopress
