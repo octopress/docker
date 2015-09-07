@@ -1,4 +1,4 @@
-FROM jekyll/stable
+FROM jekyll/jekyll:stable
 MAINTAINER Jordon Bedwell <jordon@envygeeks.io>
 COPY copy /
 RUN \
