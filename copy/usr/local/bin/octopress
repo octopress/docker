@@ -11,106 +11,138 @@ as_jekyll() {
   chpst -u jekyll:jekyll "$@"
 }
 
-if [ "$1" = "install" ]; then
-  if [ ! -f /tmp/copy-shown ]; then
-    cat /usr/local/share/octopress/COPY.txt
-    touch /tmp/copy-shown
-    sleep 3
+install_feed() {
+  if [ "$feeds" = "y" ]; then
+    rm -rf public/atom.xml
+    printf 'gem "jekyll-feed"\n' \
+      >> Gemfile
   fi
+}
+
+install_color() {
+  if [ "$colors" = "y" ]; then
+    sed -ri 's/^\/\/\$/\$/' sass/custom/_colors.scss
+    # ^ Hello world, you now have color!
+  fi
+}
+
+install_sitemap() {
+  if [ "$sitemap" = "y" ]; then
+    printf 'gem "jekyll-sitemap"' >> Gemfile
+    rm -rf public/sitemap.xml
+  fi
+}
+
+remove_haml() {
+  if [ "$sinatra" = "n" ]; then
+    rm -rf plugins/haml.rb
+    sed -ri "/^\s*gem\s+('|\")(haml)('|\")/d" \
+      Gemfile
+  fi
+}
+
+remove_sinatra() {
+  if [ "$sinatra" = "n" ]; then
+    sed -ri "/^\s*gem\s+('|\")(sinatra)('|\")/d" \
+      Gemfile
+  fi
+}
+
+
+if [ "$1" = "install" ]; then
+  cat /usr/local/share/octopress/COPY.txt
+  touch /tmp/copy-shown
+  sleep 3
 
   if [ -f /srv/jekyll/Gemfile ] || [ -f /srv/jekyll/Gemfile.lock ]; then
     >&2 echo "You already have a Gemfile, please rename it."
   else
+    read -p "E-Mail: " email
+    read -p "Author: " author
+    read -p "Description: " description
+    read -p "Subtitle: " subtitle
+    read -p "Title: " title
+    read -p "URL: " url
+
+    read -p "Use RDiscount? [y/n] " rdiscount
+    [ "$rdiscount" = "y" ] && read -p "Enable SmartQuotes? [y/n] " \
+      smartquotes || true
+
+    read -p "Use Pygments? [y/n] " pygments
+    read -p "Use Haml? [y/n] " haml
+    read -p "Use Sinatra? [y/n] " sinatra
+    read -p "Use Octopress Colors? [y/n] " colors
+    read -p "Use jekyll-feeds? [y/n] " feeds
+    read -p "Modernize for Jekyll 2.5+? [y/n] " \
+      modernize
+
+    export email="$email"
+    export author="$author"
+    export description="$description"
+    export subtitle="$subtitle"
+    export title="$title"
+    export url="$url"
+
+    export pygments="$pygments"
+    export feeds="$feeds"
+    export colors="$colors"
+    export rdiscount="$rdiscount"
+    export smartquotes="$smartquotes"
+    export modernize="$modernize"
+    export sinatra="$sinatra"
+    export haml="$haml"
+
     cd /srv/jekyll
     copy /opt/octopress /srv/jekyll
     as_jekyll rake install > /dev/null 2> /tmp/err.out || \
       cat /tmp/err.out && rm -f /tmp/err.out
-  fi
-elif [ "$1" = "jekyllize" ] && [ "$(ls /srv/jekyll)" ]; then
-  if [ ! -f /tmp/copy-shown ]; then
-    cat /usr/local/share/octopress/COPY.txt
-    touch /tmp/copy-shown
-    sleep 3
-  fi
 
-  read -p "E-Mail: " email
-  read -p "Author: " author
-  read -p "Description: " description
-  read -p "Subtitle: " subtitle
-  read -p "Title: " title
-  read -p "URL: " url
+    cp -R /usr/local/share/octopress/_config.yml template.erb
+    as_jekyll erb template.erb > _config.yml
+    rm -rf template.erb
 
-  read -p "Use RDiscount? [y/n] " rdiscount
-  read -p "Would you like to modernize Octopress for Jekyll? [y/n] " reorganize
-  read -p "Use Octopress Colors? [y/n] " colors
+    as_jekyll mkdir -p stylesheets
+    as_jekyll mv sass/screen.scss sass/octopress.scss
+    as_jekyll printf -- '---\n---\n\n@import "octopress"\n' > \
+      stylesheets/screen.scss
 
-  [ "$rdiscount" = "y" ] && read -p "Enable SmartQuotes? [y/n] " \
-    smart || true
+    install_feed
+    install_color
+    install_sitemap
+    remove_sinatra
+    remove_haml
 
-  export email="$email"
-  export author="$author"
-  export rdiscount="$rdiscount"
-  export description="$description"
-  export subtitle="$subtitle"
-  export title="$title"
-  export url="$url"
+    cp /usr/local/share/octopress/_styles.scss \
+      sass/custom/_styles.scss
 
-  export rdiscount="$rdiscount"
-  export reorganize="$reorganize"
-  export sitemaps="$sitemaps"
-  export smart="$smart"
+    if [ "$modernize" = "y" ]; then
+      stmpdir=$(mktemp -d)
+      mtmpdir=$(mktemp -d)
 
-  cd /srv/jekyll
-  cp -R /usr/local/share/octopress/_config.yml template.erb
-  as_jekyll erb template.erb > _config.yml
-  rm -rf template.erb
+      chown -R jekyll:jekyll $mtmpdir
+      chown -R jekyll:jekyll $stmpdir
 
-  as_jekyll mkdir -p stylesheets
-  mv sass/screen.scss sass/octopress.scss
-  as_jekyll printf -- '---\n---\n\n@import "octopress"\n' > \
-    stylesheets/screen.scss
+      cd $mtmpdir
+      rm -rf Rakefile
+      copy /srv/jekyll $mtmpdir
+      copy $mtmpdir/source $stmpdir
+      copy $stmpdir $mtmpdir
+      rm -rf .themes public \
+        source $stmpdir
 
-  if [ "$reorganize" = "y" ]; then
-    stmpdir=$(mktemp -d)
-    mtmpdir=$(mktemp -d)
+      mv sass _sass
+      mv plugins _plugins
+      as_jekyll find /srv/jekyll ! -path /srv/jekyll -maxdepth 1 -exec rm -rf {} \;
+      copy $mtmpdir /srv/jekyll
 
-    chown -R jekyll:jekyll $mtmpdir
-    chown -R jekyll:jekyll $stmpdir
-
-    cd $mtmpdir
-    rm -rf Rakefile
-    copy /srv/jekyll $mtmpdir
-    copy $mtmpdir/source $stmpdir
-    copy $stmpdir $mtmpdir
-    rm -rf .themes public \
-      source $stmpdir
-
-    mv sass _sass
-    mv plugins _plugins
-    as_jekyll find /srv/jekyll ! -path /srv/jekyll -maxdepth 1 -exec rm -rf {} \;
-    copy $mtmpdir /srv/jekyll
-
-    cd /srv/jekyll
-    as_jekyll cp /usr/local/share/octopress/compass.rb _plugins/compass.rb
-    sed -ri "s/require\s+'.\/plugins\//require_relative '/" _plugins/*
-
-    [ "$feeds" = "n" ] && cp /opt/octopress/public/atom.xml atom.xml || true
-    [ "$colors" = "y" ] && sed -ri 's/^\/\/\$/\$/' _sass/custom/_colors.scss || true
-    [ "$feeds" = "y" ] && printf 'gem "jekyll-feed"\n'    >> Gemfile || true
-    cp /usr/local/share/octopress/_styles.scss _sass/custom/_styles.scss
-  else
-    if [ "$colors" = "y" ]; then
-      sed -ri 's/^\/\/\$/\$/' sass/custom/_colors.scss
+      cd /srv/jekyll
+      as_jekyll cp /usr/local/share/octopress/compass.rb _plugins/compass.rb
+      sed -ri "s/require\s+'.\/plugins\//require_relative '/" _plugins/*
     fi
   fi
-elif [ "$1" = "jekyllize" ] && [ -z "$(ls /srv/jekyll)" ]; then
-  echo "Please run $0 install before using this tool."
-  exit 1
-
 elif [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   /usr/bin/octopress --help
   echo "  install               Installs Octopress for you. Docker ONLY."
-  echo "  jekyllize             Make Octopress friendlier to modern Jekyll and it's toolset. Docker ONLY."
   exit 0
 else
   /usr/bin/octopress \

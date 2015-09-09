@@ -2,7 +2,7 @@
 
 This image provides an isolated full install of Octopress with all the benefits
 of `jekyll/stable` Docker image so if you are looking to do cool stuff you
-should check out https://github.com/jekyll/docker-jekyll too because it has a
+should check out https://github.com/jekyll/jekyll-docker too because it has a
 lot of neat stuff this image inherits.
 
 ## Installing Octopress
@@ -11,21 +11,6 @@ lot of neat stuff this image inherits.
 docker run --rm --volume=$(pwd):/srv/jekyll -it octopress/octopress \
   octopress install
 ```
-
-## Normalizing for Jekyll Workflow
-
-The `octopress` command has been shivved to provided a `jekyllize` sub-command
-that will ask you a few questions and get you going quickly.  It will also ask
-you if you would like to modify Octopress to work with the standard Jekyll
-workflow so that you can do `jekyll s` instead of using Rake and custom tasks.
-***Dully note that this is only for stable Octopress and could change in the
-future when Octopress moves to the gem version of itself.***
-
-```sh
-docker run --rm --volume=$(pwd):/srv/jekyll -it octopress/octopress \
-  octopress jekyllize
-```
-
 
 ## Data and mount location
 

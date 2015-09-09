@@ -12,10 +12,10 @@ date_format: "ordinal"
 
 root: /
 permalink: /blog/:year/:month/:day/:title/
-<%= "source: source" if ENV["reorganize"] != "y" %>
-<%= "destination: public" if ENV["reorganize"] != "y" %>
-plugins: <%= ENV["reorganize"] == "y" ? "_plugins" : "plugins" %>
-sass_dir: <%= ENV["reorganize"] == "y" ? "_sass" : "sass" %>
+<%= "source: source" if ENV["modernize"] != "y" %>
+<%= "destination: public" if ENV["modernize"] != "y" %>
+plugins: <%= ENV["modernize"] == "y" ? "_plugins" : "plugins" %>
+sass_dir: <%= ENV["modernize"] == "y" ? "_sass" : "sass" %>
 code_dir: downloads/code
 category_dir: blog/categories
 <% if ENV["rdiscount"] == "y" %>
@@ -28,7 +28,7 @@ rdiscount:
     <% "- smart" if ENV["smart"] %>
 <% end %>
 
-highlighter: pygments
+highlighter: <%= ENV["pygments"] == "y" ? "pygments" : "rouge" %>
 paginate_path: "posts/:num"
 excerpt_link: "Read on &rarr;"
 excerpt_separator: "<!--more-->"
