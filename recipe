@@ -1,8 +1,0 @@
-#!/bin/sh
-set -e
-user=${DOCKER_USER:-octopress}
-root=$(cd "$(dirname "$(readlink -f $0)")"; pwd)
-cd "$root"
-
-docker build -t "$user/octopress" \
-  .
